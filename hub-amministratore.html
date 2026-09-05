@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeskFlow — Hub Amministratore</title>
+<style>
+  :root { --accent:#1a73e8; --bg:#f5f5f7; --border:#e2e2e6; --text1:#1a1a1a; --text3:#8a8a90; --red:#dc2626; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); margin:0; padding:48px 20px; color:var(--text1); }
+  .wrap { max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  .sub { color: var(--text3); font-size: 13px; margin-bottom: 22px; }
+  .avviso { font-size:11.5px; color:#856404; background:#fff3cd; padding:9px 12px; border-radius:8px; margin-bottom:22px; line-height:1.5; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; gap: 12px; }
+  .nome { font-weight: 700; font-size: 14.5px; }
+  .url { font-size: 11.5px; color: var(--text3); margin-top:2px; word-break: break-all; }
+  button { border:none; border-radius:7px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .btn-vai { background: var(--accent); color: #fff; }
+  .btn-elimina { background: transparent; color: var(--red); padding:9px 10px; }
+  .btn-aggiungi { background: var(--accent); color: #fff; margin-top: 6px; padding: 11px 16px; }
+  .form { background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; margin-top:14px; display:none; }
+  .form.aperto { display:block; }
+  label { display:block; font-size:12px; font-weight:600; margin: 10px 0 4px; }
+  label:first-child { margin-top:0; }
+  input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:13px; }
+  .empty { color: var(--text3); font-size: 13px; padding: 24px 0; text-align:center; }
+  .riga-azioni { display:flex; gap:8px; }
+  .stato { font-size:12px; color: var(--text3); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔀 Hub Amministratore</h1>
+  <div class="sub">Un solo punto da cui aprire tutte le tue strutture DeskFlow.</div>
+  <div class="avviso">⚠ Questa pagina serve solo per aprire il sito giusto — ogni struttura resta il proprio sito originale, con i propri strumenti (non li mescola). L'elenco è salvato su Supabase (progetto "gestionale"), quindi resta anche cambiando dispositivo/browser.</div>
+  <div class="stato" id="stato">Caricamento…</div>
+  <div id="lista"></div>
+  <button class="btn-aggiungi" onclick="mostraForm()">+ Aggiungi struttura</button>
+  <div class="form" id="form">
+    <label>Nome struttura</label>
+    <input type="text" id="f-nome" placeholder="es. Hotel Villa Aurora">
+    <label>Indirizzo del sito</label>
+    <input type="text" id="f-url" placeholder="https://villaaurorahotel.github.io/deskflow.html">
+    <label>Email di accesso (facoltativa — per l'accesso automatico)</label>
+    <input type="email" id="f-email" placeholder="tuaemail@...">
+    <label>Password (facoltativa — per l'accesso automatico)</label>
+    <input type="password" id="f-password" placeholder="••••••••">
+    <div style="margin-top:14px" class="riga-azioni">
+      <button class="btn-aggiungi" onclick="salva()">Salva</button>
+      <button onclick="nascondiForm()" style="background:transparent;color:#666">Annulla</button>
+    </div>
+  </div>
+</div>
+<script>
+// Progetto Supabase dedicato all'Hub ("gestionale") — scritto direttamente qui perché questa
+// pagina non ha un altro posto dove salvare "quale Supabase usare" prima ancora di essersi
+// collegata a uno: è la configurazione di partenza fissa di questa pagina specifica.
+var SB_URL = 'https://sgusjokwplrohtodouci.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNndXNqb2t3cGxyb2h0b2RvdWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NjcwOTgsImV4cCI6MjEwNDE0MzA5OH0.kizjWc-ziP-Bnqs1WFOh1byYr1x5nFY2Hzo6THT50gI';
+
+function sbHeaders(extra){
+  var h = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+  if (extra) Object.assign(h, extra);
+  return h;
+}
+
+var listaCache = [];
+
+function mostraForm(){ document.getElementById('form').classList.add('aperto'); document.getElementById('f-nome').focus(); }
+function nascondiForm(){
+  document.getElementById('form').classList.remove('aperto');
+  ['f-nome','f-url','f-email','f-password'].forEach(function(id){ document.getElementById(id).value=''; });
+}
+
+async function caricaLista(){
+  document.getElementById('stato').textContent = 'Caricamento…';
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/hub_strutture?select=*&order=creato_il.asc', { headers: sbHeaders() });
+    if (!res.ok) throw new Error('Risposta ' + res.status);
+    listaCache = await res.json();
+    document.getElementById('stato').textContent = '';
+    render();
+  } catch (err) {
+    console.error('Errore caricamento strutture:', err);
+    document.getElementById('stato').textContent = '⚠ Errore nel caricare l\'elenco da Supabase — controlla la connessione e ricarica la pagina.';
+  }
+}
+
+async function salva(){
+  var nome = document.getElementById('f-nome').value.trim();
+  var url = document.getElementById('f-url').value.trim();
+  var email = document.getElementById('f-email').value.trim();
+  var password = document.getElementById('f-password').value;
+  if (!nome || !url) { alert('Inserisci almeno nome e indirizzo del sito'); return; }
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/hub_strutture', {
+      method: 'POST',
+      headers: sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ nome: nome, url: url, email: email, password: password }),
+    });
+    if (!res.ok) throw new Error('Risposta ' + res.status);
+    nascondiForm();
+    await caricaLista();
+  } catch (err) {
+    console.error('Errore salvataggio struttura:', err);
+    alert('Salvataggio non riuscito — controlla la connessione e riprova.');
+  }
+}
+
+async function elimina(id){
+  if (!confirm('Rimuovere questa struttura dall\'elenco?')) return;
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/hub_strutture?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE', headers: sbHeaders(),
+    });
+    if (!res.ok) throw new Error('Risposta ' + res.status);
+    await caricaLista();
+  } catch (err) {
+    console.error('Errore eliminazione struttura:', err);
+    alert('Eliminazione non riuscita — controlla la connessione e riprova.');
+  }
+}
+
+function vai(id){
+  var s = listaCache.find(function(x){ return x.id === id; });
+  if (!s) return;
+  var url = s.url;
+  if (s.email && s.password) {
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    // L'email/password viaggiano una sola volta nell'indirizzo, verso il sito di destinazione, che
+    // le legge subito e le toglie dalla barra degli indirizzi appena effettuato l'accesso.
+    url += sep + 'autologin_email=' + encodeURIComponent(s.email) + '&autologin_password=' + encodeURIComponent(s.password);
+  }
+  window.location.href = url;
+}
+
+function render(){
+  var el = document.getElementById('lista');
+  if (!listaCache.length) { el.innerHTML = '<div class="empty">Nessuna struttura ancora aggiunta.</div>'; return; }
+  el.innerHTML = listaCache.map(function(s){
+    return '<div class="card"><div><div class="nome">'+String(s.nome).replace(/</g,'&lt;')+'</div><div class="url">'+String(s.url).replace(/</g,'&lt;')+'</div></div>'+
+    '<div class="riga-azioni"><button class="btn-vai" onclick="vai(\''+s.id+'\')">Apri →</button><button class="btn-elimina" onclick="elimina(\''+s.id+'\')">✕</button></div></div>';
+  }).join('');
+}
+
+caricaLista();
+</script>
+</body>
+</html>
