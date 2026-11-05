@@ -30,79 +30,110 @@
   .empty { color: var(--text3); font-size: 13px; padding: 24px 0; text-align:center; }
   .riga-azioni { display:flex; gap:8px; }
   .stato { font-size:12px; color: var(--text3); margin-bottom: 14px; }
+  .esci { background:transparent; color:var(--text3); font-size:12px; padding:4px 8px; font-weight:500; }
+  .testa { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .errore { color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🔀 Hub Amministratore</h1>
-  <div class="sub">Un solo punto da cui aprire tutte le tue strutture DeskFlow.</div>
-  <div class="avviso">⚠ Questa pagina serve solo per aprire il sito giusto — ogni struttura resta il proprio sito originale, con i propri strumenti (non li mescola). L'elenco è salvato su Supabase (progetto "gestionale"), quindi resta anche cambiando dispositivo/browser.</div>
-  <div class="stato" id="stato">Caricamento…</div>
-  <div id="lista"></div>
-  <button class="btn-aggiungi" onclick="mostraForm()">+ Aggiungi struttura</button>
-  <div class="form" id="form">
-    <label>Nome struttura</label>
-    <input type="text" id="f-nome" placeholder="es. Hotel Villa Aurora">
-    <label>Indirizzo del sito</label>
-    <input type="text" id="f-url" placeholder="https://villaaurorahotel.github.io/deskflow.html">
-    <label>Email di accesso (facoltativa — per l'accesso automatico)</label>
-    <input type="email" id="f-email" placeholder="tuaemail@...">
-    <label>Password (facoltativa — per l'accesso automatico)</label>
-    <input type="password" id="f-password" placeholder="••••••••">
-    <div style="margin-top:14px" class="riga-azioni">
-      <button class="btn-aggiungi" onclick="salva()">Salva</button>
-      <button onclick="nascondiForm()" style="background:transparent;color:#666">Annulla</button>
+  <div class="testa">
+    <div>
+      <h1>🔀 Hub Amministratore</h1>
+      <div class="sub">Un solo punto da cui aprire tutte le tue strutture DeskFlow.</div>
+    </div>
+    <button class="esci" id="btn-esci" onclick="esci()" style="display:none">Esci</button>
+  </div>
+
+  <!-- Accesso: solo l'amministratore vede l'elenco -->
+  <div id="vista-login" style="display:none">
+    <div class="form aperto" style="margin-top:0">
+      <label>Email</label>
+      <input type="email" id="l-email" autocomplete="username" placeholder="la tua email di amministratore">
+      <label>Password</label>
+      <input type="password" id="l-password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')entra()">
+      <div style="margin-top:14px"><button class="btn-aggiungi" onclick="entra()">Entra</button></div>
+      <div class="errore" id="l-errore"></div>
+    </div>
+  </div>
+
+  <div id="vista-hub" style="display:none">
+    <div class="avviso">⚠ Questa pagina serve solo per aprire il sito giusto — ogni struttura resta il proprio sito originale, con i propri strumenti (non li mescola). L'elenco è salvato in modo protetto su Supabase e lo vede solo chi ha fatto l'accesso come amministratore.</div>
+    <div class="stato" id="stato">Caricamento…</div>
+    <div id="lista"></div>
+    <button class="btn-aggiungi" onclick="mostraForm()">+ Aggiungi struttura</button>
+    <div class="form" id="form">
+      <label>Nome struttura</label>
+      <input type="text" id="f-nome" placeholder="es. Greta's House">
+      <label>Indirizzo del sito</label>
+      <input type="text" id="f-url" placeholder="https://...">
+      <label>Email di accesso (facoltativa — per l'accesso automatico)</label>
+      <input type="email" id="f-email" placeholder="tuaemail@...">
+      <label>Password (facoltativa — per l'accesso automatico)</label>
+      <input type="password" id="f-password" placeholder="••••••••">
+      <div style="margin-top:14px" class="riga-azioni">
+        <button class="btn-aggiungi" onclick="salva()">Salva</button>
+        <button onclick="nascondiForm()" style="background:transparent;color:#666">Annulla</button>
+      </div>
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-// Progetto Supabase dedicato all'Hub ("gestionale") — scritto direttamente qui perché questa
-// pagina non ha un altro posto dove salvare "quale Supabase usare" prima ancora di essersi
-// collegata a uno: è la configurazione di partenza fissa di questa pagina specifica.
-var SB_URL = 'https://sgusjokwplrohtodouci.supabase.co';
-var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNndXNqb2t3cGxyb2h0b2RvdWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NjcwOTgsImV4cCI6MjEwNDE0MzA5OH0.kizjWc-ziP-Bnqs1WFOh1byYr1x5nFY2Hzo6THT50gI';
-
-function sbHeaders(extra){
-  var h = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
-  if (extra) Object.assign(h, extra);
-  return h;
-}
-
+// Progetto Supabase "Amministratore" (quello di Greta's House). La chiave qui sotto è quella pubblica:
+// da sola non permette di leggere l'elenco, serve l'accesso con email e password.
+var SB_URL = 'https://xhacoxddmcjwvwwygdsa.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoYWNveGRkbWNqd3Z3d3lnZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NjM3ODUsImV4cCI6MjEwMjAzOTc4NX0.G7dbZAyG9hinOU-h3WmsZGeCNd8AfwXY4eN7doSL5qk';
+var sb = supabase.createClient(SB_URL, SB_KEY);
 var listaCache = [];
 
-function mostraForm(){ document.getElementById('form').classList.add('aperto'); document.getElementById('f-nome').focus(); }
+function el(id){ return document.getElementById(id); }
+function mostraForm(){ el('form').classList.add('aperto'); el('f-nome').focus(); }
 function nascondiForm(){
-  document.getElementById('form').classList.remove('aperto');
-  ['f-nome','f-url','f-email','f-password'].forEach(function(id){ document.getElementById(id).value=''; });
+  el('form').classList.remove('aperto');
+  ['f-nome','f-url','f-email','f-password'].forEach(function(id){ el(id).value=''; });
+}
+function vistaLogin(){ el('vista-login').style.display='block'; el('vista-hub').style.display='none'; el('btn-esci').style.display='none'; }
+function vistaHub(){ el('vista-login').style.display='none'; el('vista-hub').style.display='block'; el('btn-esci').style.display='inline-block'; caricaLista(); }
+
+async function entra(){
+  var email = el('l-email').value.trim(), pw = el('l-password').value;
+  el('l-errore').textContent = '';
+  if (!email || !pw) { el('l-errore').textContent = 'Inserisci email e password.'; return; }
+  var r = await sb.auth.signInWithPassword({ email: email, password: pw });
+  if (r.error) { el('l-errore').textContent = 'Accesso non riuscito: controlla email e password.'; return; }
+  el('l-password').value = '';
+  vistaHub();
+}
+async function esci(){
+  await sb.auth.signOut();
+  listaCache = []; el('lista').innerHTML = '';
+  vistaLogin();
 }
 
 async function caricaLista(){
-  document.getElementById('stato').textContent = 'Caricamento…';
+  el('stato').textContent = 'Caricamento…';
   try {
-    var res = await fetch(SB_URL + '/rest/v1/hub_strutture?select=*&order=creato_il.asc', { headers: sbHeaders() });
-    if (!res.ok) throw new Error('Risposta ' + res.status);
-    listaCache = await res.json();
-    document.getElementById('stato').textContent = '';
+    var r = await sb.from('hub_strutture').select('*').order('creato_il', { ascending: true });
+    if (r.error) throw r.error;
+    listaCache = r.data || [];
+    el('stato').textContent = '';
     render();
   } catch (err) {
     console.error('Errore caricamento strutture:', err);
-    document.getElementById('stato').textContent = '⚠ Errore nel caricare l\'elenco da Supabase — controlla la connessione e ricarica la pagina.';
+    el('stato').textContent = '⚠ Non riesco a leggere l\'elenco. Controlla la connessione, oppure esci e rientra.';
   }
 }
 
 async function salva(){
-  var nome = document.getElementById('f-nome').value.trim();
-  var url = document.getElementById('f-url').value.trim();
-  var email = document.getElementById('f-email').value.trim();
-  var password = document.getElementById('f-password').value;
+  var nome = el('f-nome').value.trim();
+  var url = el('f-url').value.trim();
+  var email = el('f-email').value.trim();
+  var password = el('f-password').value;
   if (!nome || !url) { alert('Inserisci almeno nome e indirizzo del sito'); return; }
   try {
-    var res = await fetch(SB_URL + '/rest/v1/hub_strutture', {
-      method: 'POST',
-      headers: sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-      body: JSON.stringify({ nome: nome, url: url, email: email, password: password }),
-    });
-    if (!res.ok) throw new Error('Risposta ' + res.status);
+    var r = await sb.from('hub_strutture').insert({ nome: nome, url: url, email: email, password: password });
+    if (r.error) throw r.error;
     nascondiForm();
     await caricaLista();
   } catch (err) {
@@ -114,10 +145,8 @@ async function salva(){
 async function elimina(id){
   if (!confirm('Rimuovere questa struttura dall\'elenco?')) return;
   try {
-    var res = await fetch(SB_URL + '/rest/v1/hub_strutture?id=eq.' + encodeURIComponent(id), {
-      method: 'DELETE', headers: sbHeaders(),
-    });
-    if (!res.ok) throw new Error('Risposta ' + res.status);
+    var r = await sb.from('hub_strutture').delete().eq('id', id);
+    if (r.error) throw r.error;
     await caricaLista();
   } catch (err) {
     console.error('Errore eliminazione struttura:', err);
@@ -132,22 +161,27 @@ function vai(id){
   if (s.email && s.password) {
     var sep = url.indexOf('?') >= 0 ? '&' : '?';
     // L'email/password viaggiano una sola volta nell'indirizzo, verso il sito di destinazione, che
-    // le legge subito e le toglie dalla barra degli indirizzi appena effettuato l'accesso.
+    // le legge subito e le toglie dalla barra degli indirizzi.
     url += sep + 'autologin_email=' + encodeURIComponent(s.email) + '&autologin_password=' + encodeURIComponent(s.password);
   }
   window.location.href = url;
 }
 
 function render(){
-  var el = document.getElementById('lista');
-  if (!listaCache.length) { el.innerHTML = '<div class="empty">Nessuna struttura ancora aggiunta.</div>'; return; }
-  el.innerHTML = listaCache.map(function(s){
+  var box = el('lista');
+  if (!listaCache.length) { box.innerHTML = '<div class="empty">Nessuna struttura ancora aggiunta.</div>'; return; }
+  box.innerHTML = listaCache.map(function(s){
     return '<div class="card"><div><div class="nome">'+String(s.nome).replace(/</g,'&lt;')+'</div><div class="url">'+String(s.url).replace(/</g,'&lt;')+'</div></div>'+
     '<div class="riga-azioni"><button class="btn-vai" onclick="vai(\''+s.id+'\')">Apri →</button><button class="btn-elimina" onclick="elimina(\''+s.id+'\')">✕</button></div></div>';
   }).join('');
 }
 
-caricaLista();
+(async function avvio(){
+  try {
+    var r = await sb.auth.getSession();
+    if (r.data && r.data.session) vistaHub(); else vistaLogin();
+  } catch (e) { vistaLogin(); }
+})();
 </script>
 </body>
 </html>
