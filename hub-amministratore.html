@@ -8,31 +8,46 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%236d28d9'/%3E%3Ctext x='12' y='17' font-size='13' text-anchor='middle'%3E%F0%9F%94%80%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="hub-manifest.json">
 <style>
-  :root { --accent:#1a73e8; --bg:#f5f5f7; --border:#e2e2e6; --text1:#1a1a1a; --text3:#8a8a90; --red:#dc2626; }
+  :root { --accent:#1a73e8; --bg:#f5f5f7; --border:#e2e2e6; --text1:#1a1a1a; --text3:#8a8a90; --red:#dc2626; --green:#16a34a; --amber:#d97706; }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); margin:0; padding:48px 20px; color:var(--text1); }
-  .wrap { max-width: 620px; margin: 0 auto; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); margin:0; padding:28px 16px 60px; color:var(--text1); }
+  .wrap { max-width: 1040px; margin: 0 auto; }
   h1 { font-size: 21px; margin: 0 0 4px; }
-  .sub { color: var(--text3); font-size: 13px; margin-bottom: 22px; }
-  .avviso { font-size:11.5px; color:#856404; background:#fff3cd; padding:9px 12px; border-radius:8px; margin-bottom:22px; line-height:1.5; }
-  .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; gap: 12px; }
-  .nome { font-weight: 700; font-size: 14.5px; }
-  .url { font-size: 11.5px; color: var(--text3); margin-top:2px; word-break: break-all; }
+  .sub { color: var(--text3); font-size: 13px; margin-bottom: 18px; }
+  .testa { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
   button { border:none; border-radius:7px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
-  .btn-vai { background: var(--accent); color: #fff; }
-  .btn-elimina { background: transparent; color: var(--red); padding:9px 10px; }
-  .btn-aggiungi { background: var(--accent); color: #fff; margin-top: 6px; padding: 11px 16px; }
-  .form { background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; margin-top:14px; display:none; }
+  .btn-vai { background: var(--accent); color:#fff; }
+  .btn-sec { background:#fff; color:#333; border:1px solid var(--border); }
+  .btn-ghost { background:transparent; color:var(--text3); font-weight:500; padding:9px 8px; }
+  .btn-elimina { background:transparent; color:var(--red); padding:9px 8px; }
+  .totali { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .tot { flex:1; min-width:150px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .tot b { display:block; font-size:24px; }
+  .tot span { font-size:12px; color:var(--text3); }
+  .griglia { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:12px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; border-top:4px solid var(--accent); }
+  .card h2 { font-size:16px; margin:0 0 2px; }
+  .url { font-size:11px; color:var(--text3); word-break:break-all; margin-bottom:12px; }
+  .kpi { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+  .kpi div { background:#f7f7f9; border-radius:8px; padding:8px 6px; text-align:center; }
+  .kpi b { display:block; font-size:19px; }
+  .kpi span { font-size:10.5px; color:var(--text3); }
+  .kpi .evid { background:#fef3c7; } .kpi .evid b { color:var(--amber); }
+  .riga { font-size:12.5px; color:#444; display:flex; justify-content:space-between; gap:8px; padding:3px 0; }
+  .riga b { color:var(--text1); }
+  .ultime { margin-top:8px; border-top:1px solid var(--border); padding-top:8px; font-size:12px; }
+  .ultime .u { padding:3px 0; color:#444; }
+  .ultime .tag { background:#dcfce7; color:#166534; border-radius:4px; font-size:10px; padding:1px 5px; margin-left:4px; font-weight:700; }
+  .az { display:flex; gap:6px; margin-top:12px; align-items:center; }
+  .err { color:var(--red); font-size:12.5px; background:#fee2e2; border-radius:8px; padding:8px 10px; margin-bottom:10px; }
+  .muto { color:var(--text3); font-size:12.5px; }
+  .form { background:#fff; border:1px solid var(--border); border-radius:10px; padding:18px; margin-top:16px; display:none; max-width:560px; }
   .form.aperto { display:block; }
-  label { display:block; font-size:12px; font-weight:600; margin: 10px 0 4px; }
-  label:first-child { margin-top:0; }
+  label { display:block; font-size:12px; font-weight:600; margin:10px 0 4px; }
   input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:13px; }
-  .empty { color: var(--text3); font-size: 13px; padding: 24px 0; text-align:center; }
-  .riga-azioni { display:flex; gap:8px; }
-  .stato { font-size:12px; color: var(--text3); margin-bottom: 14px; }
-  .esci { background:transparent; color:var(--text3); font-size:12px; padding:4px 8px; font-weight:500; }
-  .testa { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .nota { font-size:11.5px; color:var(--text3); margin-top:4px; }
   .errore { color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px; }
+  .empty { color:var(--text3); font-size:13px; padding:24px 0; text-align:center; }
 </style>
 </head>
 <body>
@@ -40,61 +55,85 @@
   <div class="testa">
     <div>
       <h1>🔀 Hub Amministratore</h1>
-      <div class="sub">Un solo punto da cui aprire tutte le tue strutture DeskFlow.</div>
+      <div class="sub">Tutte le tue strutture in un colpo d'occhio. <span id="ultimo-agg"></span></div>
     </div>
-    <button class="esci" id="btn-esci" onclick="esci()" style="display:none">Esci</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sec" id="btn-agg" onclick="aggiornaTutto()" style="display:none">↻ Aggiorna</button>
+      <button class="btn-ghost" id="btn-esci" onclick="esci()" style="display:none">Esci</button>
+    </div>
   </div>
 
-  <!-- Accesso: solo l'amministratore vede l'elenco -->
   <div id="vista-login" style="display:none">
     <div class="form aperto" style="margin-top:0">
       <label>Email</label>
       <input type="email" id="l-email" autocomplete="username" placeholder="la tua email di amministratore">
       <label>Password</label>
       <input type="password" id="l-password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')entra()">
-      <div style="margin-top:14px"><button class="btn-aggiungi" onclick="entra()">Entra</button></div>
+      <div style="margin-top:14px"><button class="btn-vai" onclick="entra()">Entra</button></div>
       <div class="errore" id="l-errore"></div>
     </div>
   </div>
 
   <div id="vista-hub" style="display:none">
-    <div class="avviso">⚠ Questa pagina serve solo per aprire il sito giusto — ogni struttura resta il proprio sito originale, con i propri strumenti (non li mescola). L'elenco è salvato in modo protetto su Supabase e lo vede solo chi ha fatto l'accesso come amministratore.</div>
-    <div class="stato" id="stato">Caricamento…</div>
-    <div id="lista"></div>
-    <button class="btn-aggiungi" onclick="mostraForm()">+ Aggiungi struttura</button>
+    <div class="totali" id="totali"></div>
+    <div class="muto" id="stato" style="margin-bottom:10px"></div>
+    <div class="griglia" id="lista"></div>
+    <div style="margin-top:14px"><button class="btn-vai" onclick="mostraForm()">+ Aggiungi struttura</button></div>
     <div class="form" id="form">
+      <input type="hidden" id="f-id">
       <label>Nome struttura</label>
       <input type="text" id="f-nome" placeholder="es. Greta's House">
-      <label>Indirizzo del sito</label>
+      <label>Indirizzo del PMS (il sito da aprire)</label>
       <input type="text" id="f-url" placeholder="https://...">
-      <label>Email di accesso (facoltativa — per l'accesso automatico)</label>
+      <label>Email di accesso al PMS</label>
       <input type="email" id="f-email" placeholder="tuaemail@...">
-      <label>Password (facoltativa — per l'accesso automatico)</label>
+      <label>Password di accesso al PMS</label>
       <input type="password" id="f-password" placeholder="••••••••">
-      <div style="margin-top:14px" class="riga-azioni">
-        <button class="btn-aggiungi" onclick="salva()">Salva</button>
-        <button onclick="nascondiForm()" style="background:transparent;color:#666">Annulla</button>
+      <label>Supabase URL della struttura (per la panoramica)</label>
+      <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co">
+      <label>Chiave pubblica "anon" di quel progetto</label>
+      <input type="text" id="f-sbkey" placeholder="eyJ...">
+      <div class="nota">Si trovano in Supabase → progetto della struttura → Project Settings → API (URL e "anon public"). Con email e password il Hub legge i dati di quella struttura, in sola lettura.</div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn-vai" onclick="salva()">Salva</button>
+        <button class="btn-ghost" onclick="nascondiForm()">Annulla</button>
       </div>
     </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-// Progetto Supabase "Amministratore" (quello di Greta's House). La chiave qui sotto è quella pubblica:
-// da sola non permette di leggere l'elenco, serve l'accesso con email e password.
+// Progetto Supabase "Amministratore". La chiave è quella pubblica: da sola non permette di leggere nulla.
 var SB_URL = 'https://xhacoxddmcjwvwwygdsa.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoYWNveGRkbWNqd3Z3d3lnZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NjM3ODUsImV4cCI6MjEwMjAzOTc4NX0.G7dbZAyG9hinOU-h3WmsZGeCNd8AfwXY4eN7doSL5qk';
 var sb = supabase.createClient(SB_URL, SB_KEY);
 var listaCache = [];
+var datiStrutt = {};   // id -> {ok, errore, ...}
 
 function el(id){ return document.getElementById(id); }
-function mostraForm(){ el('form').classList.add('aperto'); el('f-nome').focus(); }
-function nascondiForm(){
-  el('form').classList.remove('aperto');
-  ['f-nome','f-url','f-email','f-password'].forEach(function(id){ el(id).value=''; });
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function pad(n){ return (n<10?'0':'')+n; }
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function addG(ds,n){ var p=ds.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+n); return ymd(d); }
+function euro(n){ return (Number(n)||0).toLocaleString('it-IT',{maximumFractionDigits:0})+' €'; }
+function fmtD(ds){ var p=(ds||'').split('-'); return p.length===3 ? p[2]+'/'+p[1] : ds; }
+
+function mostraForm(s){
+  el('form').classList.add('aperto');
+  el('f-id').value = s ? s.id : '';
+  el('f-nome').value = s ? s.nome||'' : '';
+  el('f-url').value = s ? s.url||'' : '';
+  el('f-email').value = s ? s.email||'' : '';
+  el('f-password').value = s ? s.password||'' : '';
+  el('f-sburl').value = s ? s.sb_url||'' : '';
+  el('f-sbkey').value = s ? s.sb_key||'' : '';
+  el('f-nome').focus();
+  el('form').scrollIntoView({behavior:'smooth'});
 }
-function vistaLogin(){ el('vista-login').style.display='block'; el('vista-hub').style.display='none'; el('btn-esci').style.display='none'; }
-function vistaHub(){ el('vista-login').style.display='none'; el('vista-hub').style.display='block'; el('btn-esci').style.display='inline-block'; caricaLista(); }
+function nascondiForm(){ el('form').classList.remove('aperto'); }
+function modifica(id){ mostraForm(listaCache.find(function(x){return x.id===id;})); }
+function vistaLogin(){ el('vista-login').style.display='block'; el('vista-hub').style.display='none'; el('btn-esci').style.display='none'; el('btn-agg').style.display='none'; }
+function vistaHub(){ el('vista-login').style.display='none'; el('vista-hub').style.display='block'; el('btn-esci').style.display='inline-block'; el('btn-agg').style.display='inline-block'; caricaLista(); }
 
 async function entra(){
   var email = el('l-email').value.trim(), pw = el('l-password').value;
@@ -107,7 +146,7 @@ async function entra(){
 }
 async function esci(){
   await sb.auth.signOut();
-  listaCache = []; el('lista').innerHTML = '';
+  listaCache = []; datiStrutt = {}; el('lista').innerHTML = ''; el('totali').innerHTML = '';
   vistaLogin();
 }
 
@@ -119,61 +158,127 @@ async function caricaLista(){
     listaCache = r.data || [];
     el('stato').textContent = '';
     render();
+    aggiornaTutto();
   } catch (err) {
-    console.error('Errore caricamento strutture:', err);
+    console.error(err);
     el('stato').textContent = '⚠ Non riesco a leggere l\'elenco. Controlla la connessione, oppure esci e rientra.';
   }
 }
 
 async function salva(){
-  var nome = el('f-nome').value.trim();
-  var url = el('f-url').value.trim();
-  var email = el('f-email').value.trim();
-  var password = el('f-password').value;
-  if (!nome || !url) { alert('Inserisci almeno nome e indirizzo del sito'); return; }
+  var id = el('f-id').value;
+  var rec = { nome: el('f-nome').value.trim(), url: el('f-url').value.trim(), email: el('f-email').value.trim(),
+              password: el('f-password').value, sb_url: el('f-sburl').value.trim().replace(/\/+$/,''), sb_key: el('f-sbkey').value.trim() };
+  if (!rec.nome || !rec.url) { alert('Inserisci almeno nome e indirizzo del sito'); return; }
   try {
-    var r = await sb.from('hub_strutture').insert({ nome: nome, url: url, email: email, password: password });
+    var r = id ? await sb.from('hub_strutture').update(rec).eq('id', id) : await sb.from('hub_strutture').insert(rec);
     if (r.error) throw r.error;
     nascondiForm();
     await caricaLista();
   } catch (err) {
-    console.error('Errore salvataggio struttura:', err);
-    alert('Salvataggio non riuscito — controlla la connessione e riprova.');
+    console.error(err);
+    alert('Salvataggio non riuscito. Se hai appena aggiornato il Hub, hai eseguito lo script SQL "hub-panoramica.sql"?');
   }
 }
-
 async function elimina(id){
   if (!confirm('Rimuovere questa struttura dall\'elenco?')) return;
-  try {
-    var r = await sb.from('hub_strutture').delete().eq('id', id);
-    if (r.error) throw r.error;
-    await caricaLista();
-  } catch (err) {
-    console.error('Errore eliminazione struttura:', err);
-    alert('Eliminazione non riuscita — controlla la connessione e riprova.');
-  }
+  var r = await sb.from('hub_strutture').delete().eq('id', id);
+  if (r.error) { alert('Eliminazione non riuscita.'); return; }
+  await caricaLista();
 }
-
 function vai(id){
   var s = listaCache.find(function(x){ return x.id === id; });
   if (!s) return;
   var url = s.url;
   if (s.email && s.password) {
-    var sep = url.indexOf('?') >= 0 ? '&' : '?';
-    // L'email/password viaggiano una sola volta nell'indirizzo, verso il sito di destinazione, che
-    // le legge subito e le toglie dalla barra degli indirizzi.
-    url += sep + 'autologin_email=' + encodeURIComponent(s.email) + '&autologin_password=' + encodeURIComponent(s.password);
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'autologin_email=' + encodeURIComponent(s.email) + '&autologin_password=' + encodeURIComponent(s.password);
   }
   window.location.href = url;
 }
 
+// ── Lettura dei dati di una struttura (sola lettura) ──
+async function leggiStruttura(s){
+  var out = { ok:false };
+  if (!s.sb_url || !s.sb_key) { out.errore = 'Panoramica non attiva: aggiungi Supabase URL e chiave (✎ Modifica).'; out.nonConfigurata = true; return out; }
+  if (!s.email || !s.password) { out.errore = 'Mancano email e password di accesso (✎ Modifica).'; return out; }
+  try {
+    var c = supabase.createClient(s.sb_url, s.sb_key, { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
+    var a = await c.auth.signInWithPassword({ email:s.email, password:s.password });
+    if (a.error) { out.errore = 'Accesso non riuscito (' + a.error.message + '). Se il progetto è in pausa, riattivalo da Supabase.'; return out; }
+    var oggi = ymd(new Date());
+    var inizioMese = oggi.slice(0,8) + '01';
+    var rb = await c.from('bookings').select('id,guest_name,room_name,checkin,checkout,status,source,total_price,created_at,escludi_conteggi').gte('checkout', inizioMese).limit(5000);
+    if (rb.error) throw rb.error;
+    var rr = await c.from('rooms').select('id');
+    var rq = await c.from('richieste_preventivo').select('id,data').limit(1000);
+    await c.auth.signOut();
+    var B = (rb.data||[]).filter(function(b){ return b.status!=='cancellata' && !b.escludi_conteggi; });
+    var camere = (rr.data||[]).length;
+    var occ = B.filter(function(b){ return b.checkin<=oggi && b.checkout>oggi; }).length;
+    var arrivi = B.filter(function(b){ return b.checkin===oggi; });
+    var partenze = B.filter(function(b){ return b.checkout===oggi; });
+    var fra7 = addG(oggi,7);
+    var prossimi = B.filter(function(b){ return b.checkin>oggi && b.checkin<=fra7; }).length;
+    var ieri2 = new Date(Date.now()-48*3600*1000).toISOString();
+    var nuove = B.filter(function(b){ return (b.created_at||'') >= ieri2; });
+    var ultime = B.slice().sort(function(x,y){ return (y.created_at||'').localeCompare(x.created_at||''); }).slice(0,3);
+    var mese = B.filter(function(b){ return b.checkin>=inizioMese && b.checkin<=oggi.slice(0,8)+'31'; }).reduce(function(t,b){ return t+(Number(b.total_price)||0); },0);
+    var prev = (rq.data||[]).filter(function(x){ return x.data && x.data.status==='nuova'; }).length;
+    out = { ok:true, camere:camere, occ:occ, arrivi:arrivi.length, partenze:partenze.length, prossimi:prossimi,
+            nuove:nuove.length, ultime:ultime, mese:mese, prev: rq.error ? null : prev };
+  } catch (e) { console.error(e); out.errore = 'Non riesco a leggere i dati (' + (e.message||e) + ').'; }
+  return out;
+}
+
+async function aggiornaTutto(){
+  el('ultimo-agg').textContent = '— aggiornamento…';
+  await Promise.all(listaCache.map(async function(s){
+    datiStrutt[s.id] = await leggiStruttura(s);
+    render();
+  }));
+  render();
+  el('ultimo-agg').textContent = '— aggiornato alle ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+
 function render(){
   var box = el('lista');
-  if (!listaCache.length) { box.innerHTML = '<div class="empty">Nessuna struttura ancora aggiunta.</div>'; return; }
+  if (!listaCache.length) { box.innerHTML = '<div class="empty">Nessuna struttura ancora aggiunta.</div>'; el('totali').innerHTML=''; return; }
+  var T = { nuove:0, arrivi:0, partenze:0, prev:0, mese:0 };
   box.innerHTML = listaCache.map(function(s){
-    return '<div class="card"><div><div class="nome">'+String(s.nome).replace(/</g,'&lt;')+'</div><div class="url">'+String(s.url).replace(/</g,'&lt;')+'</div></div>'+
-    '<div class="riga-azioni"><button class="btn-vai" onclick="vai(\''+s.id+'\')">Apri →</button><button class="btn-elimina" onclick="elimina(\''+s.id+'\')">✕</button></div></div>';
+    var d = datiStrutt[s.id];
+    var corpo;
+    if (!d) corpo = '<div class="muto">Caricamento dati…</div>';
+    else if (!d.ok) corpo = '<div class="err">'+esc(d.errore)+'</div>';
+    else {
+      T.nuove+=d.nuove; T.arrivi+=d.arrivi; T.partenze+=d.partenze; T.mese+=d.mese; if (d.prev) T.prev+=d.prev;
+      var perc = d.camere ? Math.round(d.occ/d.camere*100) : 0;
+      corpo =
+        '<div class="kpi">'+
+          '<div><b>'+d.occ+'/'+d.camere+'</b><span>occupate ('+perc+'%)</span></div>'+
+          '<div><b>'+d.arrivi+'</b><span>arrivi oggi</span></div>'+
+          '<div><b>'+d.partenze+'</b><span>partenze oggi</span></div>'+
+          '<div class="'+(d.nuove?'evid':'')+'"><b>'+d.nuove+'</b><span>nuove (48 ore)</span></div>'+
+          '<div class="'+(d.prev?'evid':'')+'"><b>'+(d.prev==null?'–':d.prev)+'</b><span>preventivi da evadere</span></div>'+
+          '<div><b>'+d.prossimi+'</b><span>arrivi prossimi 7 gg</span></div>'+
+        '</div>'+
+        '<div class="riga"><span>Incassi previsti del mese</span><b>'+euro(d.mese)+'</b></div>'+
+        (d.ultime.length ? '<div class="ultime"><div class="muto" style="margin-bottom:2px">Ultime prenotazioni arrivate</div>'+
+          d.ultime.map(function(b){
+            var web = (b.source||'').toLowerCase().indexOf('sito')>=0;
+            return '<div class="u"><b>'+esc(b.guest_name||'—')+'</b>'+(web?'<span class="tag">SITO</span>':'')+' · '+esc(b.room_name||'')+' · '+fmtD(b.checkin)+'→'+fmtD(b.checkout)+' · '+euro(b.total_price)+'</div>';
+          }).join('')+'</div>' : '');
+    }
+    return '<div class="card"><h2>'+esc(s.nome)+'</h2><div class="url">'+esc(s.url)+'</div>'+corpo+
+      '<div class="az"><button class="btn-vai" onclick="vai(\''+s.id+'\')">Apri PMS →</button>'+
+      '<button class="btn-ghost" onclick="modifica(\''+s.id+'\')">✎ Modifica</button>'+
+      '<button class="btn-elimina" onclick="elimina(\''+s.id+'\')" title="Rimuovi">✕</button></div></div>';
   }).join('');
+  el('totali').innerHTML =
+    '<div class="tot"><b>'+T.nuove+'</b><span>nuove prenotazioni (48 ore)</span></div>'+
+    '<div class="tot"><b>'+T.arrivi+'</b><span>arrivi oggi</span></div>'+
+    '<div class="tot"><b>'+T.partenze+'</b><span>partenze oggi</span></div>'+
+    '<div class="tot"><b>'+T.prev+'</b><span>preventivi da evadere</span></div>'+
+    '<div class="tot"><b>'+euro(T.mese)+'</b><span>incassi previsti del mese</span></div>';
 }
 
 (async function avvio(){
