@@ -47,6 +47,16 @@
   input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:13px; }
   .nota { font-size:11.5px; color:var(--text3); margin-top:4px; }
   .errore { color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px; }
+  .avviso-nuove { background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:10px 14px; margin-bottom:14px; display:none; font-size:13.5px; }
+  .avviso-nuove.on { display:block; }
+  .avviso-nuove .riga2 { display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
+  .blocco { margin-top:10px; border-top:1px solid var(--border); padding-top:8px; }
+  .blocco .tit { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; }
+  .meteo { display:flex; gap:6px; }
+  .meteo div { flex:1; text-align:center; background:#f0f9ff; border-radius:8px; padding:5px 2px; font-size:11px; color:#444; }
+  .meteo b { display:block; font-size:13px; color:#111; }
+  .meteo .ic { font-size:20px; line-height:1.2; }
+  .link { background:none; border:none; color:var(--accent); font-size:11.5px; font-weight:600; padding:0; cursor:pointer; }
   .empty { color:var(--text3); font-size:13px; padding:24px 0; text-align:center; }
 </style>
 </head>
@@ -58,6 +68,7 @@
       <div class="sub">Tutte le tue strutture in un colpo d'occhio. <span id="ultimo-agg"></span></div>
     </div>
     <div style="display:flex;gap:8px">
+      <button class="btn-sec" id="btn-notif" onclick="attivaNotifiche()" style="display:none">🔔 Attiva notifiche</button>
       <button class="btn-sec" id="btn-agg" onclick="aggiornaTutto()" style="display:none">↻ Aggiorna</button>
       <button class="btn-ghost" id="btn-esci" onclick="esci()" style="display:none">Esci</button>
     </div>
@@ -75,6 +86,7 @@
   </div>
 
   <div id="vista-hub" style="display:none">
+    <div class="avviso-nuove" id="avviso-nuove"></div>
     <div class="totali" id="totali"></div>
     <div class="muto" id="stato" style="margin-bottom:10px"></div>
     <div class="griglia" id="lista"></div>
@@ -151,8 +163,8 @@ function mostraForm(s){
 }
 function nascondiForm(){ el('form').classList.remove('aperto'); }
 function modifica(id){ mostraForm(listaCache.find(function(x){return x.id===id;})); }
-function vistaLogin(){ el('vista-login').style.display='block'; el('vista-hub').style.display='none'; el('btn-esci').style.display='none'; el('btn-agg').style.display='none'; }
-function vistaHub(){ el('vista-login').style.display='none'; el('vista-hub').style.display='block'; el('btn-esci').style.display='inline-block'; el('btn-agg').style.display='inline-block'; caricaLista(); }
+function vistaLogin(){ el('vista-login').style.display='block'; el('vista-hub').style.display='none'; el('btn-esci').style.display='none'; el('btn-agg').style.display='none'; el('btn-notif').style.display='none'; }
+function vistaHub(){ el('vista-login').style.display='none'; el('vista-hub').style.display='block'; el('btn-esci').style.display='inline-block'; el('btn-agg').style.display='inline-block'; mostraBtnNotif(); caricaLista(); }
 
 async function entra(){
   var email = el('l-email').value.trim(), pw = el('l-password').value;
@@ -205,15 +217,74 @@ async function elimina(id){
   if (r.error) { alert('Eliminazione non riuscita.'); return; }
   await caricaLista();
 }
-function vai(id){
+function vai(id, pagina){
   var s = listaCache.find(function(x){ return x.id === id; });
   if (!s) return;
   var url = s.url;
   if (s.email && s.password) {
     url += (url.indexOf('?') >= 0 ? '&' : '?') + 'autologin_email=' + encodeURIComponent(s.email) + '&autologin_password=' + encodeURIComponent(s.password);
   }
+  if (pagina) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'apri_pagina=' + encodeURIComponent(pagina);
   window.location.href = url;
 }
+
+// ── Meteo (Open-Meteo, gratuito) ──
+var METEO_EMOJI = function(c){
+  if (c===0) return '☀️'; if (c===1) return '🌤'; if (c===2) return '⛅'; if (c===3) return '☁️';
+  if (c===45||c===48) return '🌫'; if (c>=51&&c<=67) return '🌧'; if (c>=71&&c<=77) return '🌨';
+  if (c>=80&&c<=82) return '🌦'; if (c>=85&&c<=86) return '🌨'; if (c>=95) return '⛈'; return '☁️';
+};
+async function leggiMeteo(lat, lon){
+  try {
+    var r = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max&timezone=Europe%2FRome&forecast_days=4');
+    var d = await r.json();
+    if (!d.daily) return null;
+    return d.daily.time.map(function(t,i){ return { data:t, code:d.daily.weathercode[i], temp:d.daily.temperature_2m_max[i] }; });
+  } catch(e){ return null; }
+}
+function nomeGiorno(ds,i){ if(i===0) return 'Oggi'; if(i===1) return 'Domani'; var p=ds.split('-'); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('it-IT',{weekday:'short'}); }
+
+// ── Avviso nuove prenotazioni / preventivi ──
+var _nuoveTrovate = {};   // id struttura -> {pren:[...], prev:[...]}
+function visteKey(id){ return 'hub_viste_' + id; }
+function leggiViste(id){ try { return JSON.parse(localStorage.getItem(visteKey(id))||'null'); } catch(e){ return null; } }
+function salvaViste(id, v){ try { localStorage.setItem(visteKey(id), JSON.stringify(v)); } catch(e){} }
+function controllaNuove(s, d){
+  if (!d || !d.ok) return;
+  var ids = { pren: d.idPren, prev: d.idPrev };
+  var viste = leggiViste(s.id);
+  if (!viste) { salvaViste(s.id, ids); _nuoveTrovate[s.id] = {pren:[],prev:[]}; return; } // prima volta: nessun avviso
+  _nuoveTrovate[s.id] = {
+    pren: d.listaPren.filter(function(b){ return viste.pren.indexOf(b.id) < 0; }),
+    prev: d.idPrev.filter(function(x){ return viste.prev.indexOf(x) < 0; })
+  };
+}
+function segnaVisti(){
+  listaCache.forEach(function(s){ var d = datiStrutt[s.id]; if (d && d.ok) salvaViste(s.id, { pren:d.idPren, prev:d.idPrev }); });
+  _nuoveTrovate = {}; mostraAvviso(false);
+}
+var _ultimoTotAvvisato = 0;
+function mostraAvviso(notifica){
+  var box = el('avviso-nuove'), righe = [], tot = 0;
+  listaCache.forEach(function(s){
+    var n = _nuoveTrovate[s.id]; if (!n) return;
+    var parti = [];
+    if (n.pren.length) { parti.push(n.pren.length + (n.pren.length===1?' nuova prenotazione':' nuove prenotazioni') + ' (' + n.pren.slice(0,3).map(function(b){ return esc(b.guest_name||'—') + (b.source?' · '+esc(b.source):''); }).join(', ') + ')'); tot += n.pren.length; }
+    if (n.prev.length) { parti.push(n.prev.length + (n.prev.length===1?' nuova richiesta di preventivo':' nuove richieste di preventivo')); tot += n.prev.length; }
+    if (parti.length) righe.push('<div><b>'+esc(s.nome)+'</b>: '+parti.join(' · ')+' <button class="link" onclick="vai(\''+s.id+'\',\'prenotazioni\')">Apri →</button></div>');
+  });
+  document.title = (tot ? '('+tot+') ' : '') + 'DeskFlow — Hub Amministratore';
+  if (!tot) { box.className = 'avviso-nuove'; box.innerHTML = ''; _ultimoTotAvvisato = 0; return; }
+  box.className = 'avviso-nuove on';
+  box.innerHTML = '<div class="riga2"><div>🔔 '+righe.join('')+'</div><button class="btn-sec" onclick="segnaVisti()">✓ Visto</button></div>';
+  if (notifica && tot > _ultimoTotAvvisato) {
+    try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Hub Amministratore', { body: tot + ' novità da vedere' }); } catch(e){}
+    try { var a = new (window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); o.connect(a.destination); o.frequency.value=880; o.start(); setTimeout(function(){ o.stop(); a.close(); }, 180); } catch(e){}
+  }
+  _ultimoTotAvvisato = tot;
+}
+function mostraBtnNotif(){ el('btn-notif').style.display = ('Notification' in window && Notification.permission === 'default') ? 'inline-block' : 'none'; }
+function attivaNotifiche(){ try { Notification.requestPermission().then(mostraBtnNotif); } catch(e){} }
 
 // ── Lettura dei dati di una struttura (sola lettura) ──
 async function leggiStruttura(s){
@@ -231,7 +302,24 @@ async function leggiStruttura(s){
     if (rb.error) throw rb.error;
     var rr = await c.from('rooms').select('id');
     var rq = await c.from('richieste_preventivo').select('id,data').limit(1000);
+    // Statistiche sito (ultimi 7 giorni) e posizione per il meteo: parti facoltative, un errore non blocca il resto
+    var visOggi = null, visSess = null, vis7 = null, lat = 40.1476, lon = 18.4903;
+    try {
+      var rv = await c.from('site_visits').select('ts,session_id').gte('ts', addG(oggi,-6)+'T00:00:00Z').limit(20000);
+      if (!rv.error) {
+        var vv = rv.data || [], ss = {};
+        visOggi = vv.filter(function(v){ return (v.ts||'').slice(0,10) === oggi; }).length;
+        vv.forEach(function(v){ if ((v.ts||'').slice(0,10) === oggi && v.session_id) ss[v.session_id] = 1; });
+        visSess = Object.keys(ss).length; vis7 = vv.length;
+      }
+    } catch(e){}
+    try {
+      var rs = await c.from('app_blobs').select('data').eq('key','settings').maybeSingle();
+      var st = rs && rs.data && rs.data.data; if (typeof st === 'string') st = JSON.parse(st);
+      if (st && typeof st.lat === 'number' && typeof st.lon === 'number') { lat = st.lat; lon = st.lon; }
+    } catch(e){}
     await c.auth.signOut();
+    var meteo = await leggiMeteo(lat, lon);
     var B = (rb.data||[]).filter(function(b){ return b.status!=='cancellata' && !b.escludi_conteggi; });
     var camere = (rr.data||[]).length;
     var occ = B.filter(function(b){ return b.checkin<=oggi && b.checkout>oggi; }).length;
@@ -244,7 +332,10 @@ async function leggiStruttura(s){
     var ultime = B.slice().sort(function(x,y){ return (y.created_at||'').localeCompare(x.created_at||''); }).slice(0,3);
     var mese = B.filter(function(b){ return b.checkin>=inizioMese && b.checkin<=oggi.slice(0,8)+'31'; }).reduce(function(t,b){ return t+(Number(b.total_price)||0); },0);
     var prev = (rq.data||[]).filter(function(x){ return x.data && x.data.status==='nuova'; }).length;
-    out = { ok:true, camere:camere, occ:occ, arrivi:arrivi.length, partenze:partenze.length, prossimi:prossimi,
+    var da14 = new Date(Date.now()-14*86400000).toISOString();
+    var listaPren = B.filter(function(b){ return (b.created_at||'') >= da14; });
+    var idPrev = (rq.data||[]).filter(function(x){ return x.data && x.data.status==='nuova'; }).map(function(x){ return x.id; });
+    out = { visOggi:visOggi, visSess:visSess, vis7:vis7, meteo:meteo, listaPren:listaPren, idPren:listaPren.map(function(b){return b.id;}), idPrev:idPrev, ok:true, camere:camere, occ:occ, arrivi:arrivi.length, partenze:partenze.length, prossimi:prossimi,
             nuove:nuove.length, ultime:ultime, mese:mese, prev: rq.error ? null : prev };
   } catch (e) { console.error(e); out.errore = 'Non riesco a leggere i dati (' + (e.message||e) + ').'; }
   return out;
@@ -254,9 +345,11 @@ async function aggiornaTutto(){
   el('ultimo-agg').textContent = '— aggiornamento…';
   await Promise.all(listaCache.map(async function(s){
     datiStrutt[s.id] = await leggiStruttura(s);
+    controllaNuove(s, datiStrutt[s.id]);
     render();
   }));
   render();
+  mostraAvviso(true);
   el('ultimo-agg').textContent = '— aggiornato alle ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 }
 
@@ -288,7 +381,15 @@ function render(){
             return '<div class="u"><b>'+esc(b.guest_name||'—')+'</b>'+(web?'<span class="tag">SITO</span>':'')+' · '+esc(b.room_name||'')+' · '+fmtD(b.checkin)+'→'+fmtD(b.checkout)+' · '+euro(b.total_price)+'</div>';
           }).join('')+'</div>' : '');
     }
-    return '<div class="card"><h2>'+esc(s.nome)+'</h2><div class="url">'+esc(s.url)+'</div>'+corpo+
+    var extra = '';
+    if (d && d.ok) {
+      extra += '<div class="blocco"><div class="tit"><span>📈 Statistiche sito</span><button class="link" onclick="vai(\''+s.id+'\',\'statistichesito\')">Apri statistiche →</button></div>' +
+        (d.visOggi==null ? '<div class="muto">Non disponibili (tabella site_visits)</div>'
+          : '<div class="riga"><span>Visite oggi / visitatori</span><b>'+d.visOggi+' / '+d.visSess+'</b></div><div class="riga"><span>Ultimi 7 giorni</span><b>'+d.vis7+' visite</b></div>') + '</div>';
+      extra += '<div class="blocco"><div class="tit"><span>🌤 Meteo</span></div>' +
+        (d.meteo ? '<div class="meteo">'+d.meteo.map(function(m,i){ return '<div>'+nomeGiorno(m.data,i)+'<span class="ic">'+METEO_EMOJI(m.code)+'</span><b>'+Math.round(m.temp)+'°</b></div>'; }).join('')+'</div>' : '<div class="muto">Previsioni non disponibili</div>') + '</div>';
+    }
+    return '<div class="card"><h2>'+esc(s.nome)+'</h2><div class="url">'+esc(s.url)+'</div>'+corpo+extra+
       '<div class="az"><button class="btn-vai" onclick="vai(\''+s.id+'\')">Apri PMS →</button>'+
       '<button class="btn-ghost" onclick="modifica(\''+s.id+'\')">✎ Modifica</button>'+
       '<button class="btn-elimina" onclick="elimina(\''+s.id+'\')" title="Rimuovi">✕</button></div></div>';
@@ -300,6 +401,8 @@ function render(){
     '<div class="tot"><b>'+T.prev+'</b><span>preventivi da evadere</span></div>'+
     '<div class="tot"><b>'+euro(T.mese)+'</b><span>incassi previsti del mese</span></div>';
 }
+
+setInterval(function(){ if (el('vista-hub').style.display==='block' && listaCache.length) aggiornaTutto(); }, 5*60*1000);
 
 (async function avvio(){
   try {
