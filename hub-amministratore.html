@@ -89,7 +89,7 @@
       <input type="email" id="f-email" placeholder="tuaemail@...">
       <label>Password di accesso al PMS</label>
       <input type="password" id="f-password" placeholder="••••••••">
-      <label>Supabase URL della struttura (per la panoramica)</label>
+      <label>Supabase URL della struttura (facoltativo: già noto per Greta's e Villa Aurora)</label>
       <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co">
       <label>Chiave pubblica "anon" di quel progetto</label>
       <input type="text" id="f-sbkey" placeholder="eyJ...">
@@ -107,6 +107,25 @@
 var SB_URL = 'https://xhacoxddmcjwvwwygdsa.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoYWNveGRkbWNqd3Z3d3lnZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NjM3ODUsImV4cCI6MjEwMjAzOTc4NX0.G7dbZAyG9hinOU-h3WmsZGeCNd8AfwXY4eN7doSL5qk';
 var sb = supabase.createClient(SB_URL, SB_KEY);
+
+// Progetti Supabase delle strutture (URL + chiave pubblica "anon", pensate per essere pubbliche).
+// Si abbinano alla struttura se il suo nome o indirizzo contiene il testo "cerca". Per aggiungerne
+// uno nuovo basta una riga qui sotto, oppure compilare i campi con ✎ Modifica.
+var PROGETTI_FISSI = [
+  { cerca:'greta', url:'https://xhacoxddmcjwvwwygdsa.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhoYWNveGRkbWNqd3Z3d3lnZHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NjM3ODUsImV4cCI6MjEwMjAzOTc4NX0.G7dbZAyG9hinOU-h3WmsZGeCNd8AfwXY4eN7doSL5qk' },
+  { cerca:'villaaurora', url:'https://surkplkjhrnheulzfaxv.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1cmtwbGtqaHJuaGV1bHpmYXh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjQwNTcsImV4cCI6MjA5OTQwMDA1N30.4wmz67Xj38f6DfeVCZx6zBrQjOPIWqs2yUGHpVwXucs' },
+  { cerca:'villa aurora', url:'https://surkplkjhrnheulzfaxv.supabase.co',
+    key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1cmtwbGtqaHJuaGV1bHpmYXh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MjQwNTcsImV4cCI6MjA5OTQwMDA1N30.4wmz67Xj38f6DfeVCZx6zBrQjOPIWqs2yUGHpVwXucs' }
+];
+function progettoDi(s){
+  var url = (s.sb_url||'').trim().replace(/\/rest\/v1\/?$/,'').replace(/\/+$/,''), key = (s.sb_key||'').trim();
+  if (url && key) return { url:url, key:key };
+  var testo = ((s.nome||'')+' '+(s.url||'')).toLowerCase();
+  for (var i=0;i<PROGETTI_FISSI.length;i++) if (testo.indexOf(PROGETTI_FISSI[i].cerca)>=0) return PROGETTI_FISSI[i];
+  return null;
+}
 var listaCache = [];
 var datiStrutt = {};   // id -> {ok, errore, ...}
 
@@ -168,7 +187,7 @@ async function caricaLista(){
 async function salva(){
   var id = el('f-id').value;
   var rec = { nome: el('f-nome').value.trim(), url: el('f-url').value.trim(), email: el('f-email').value.trim(),
-              password: el('f-password').value, sb_url: el('f-sburl').value.trim().replace(/\/+$/,''), sb_key: el('f-sbkey').value.trim() };
+              password: el('f-password').value, sb_url: el('f-sburl').value.trim().replace(/\/rest\/v1\/?$/,'').replace(/\/+$/,''), sb_key: el('f-sbkey').value.trim() };
   if (!rec.nome || !rec.url) { alert('Inserisci almeno nome e indirizzo del sito'); return; }
   try {
     var r = id ? await sb.from('hub_strutture').update(rec).eq('id', id) : await sb.from('hub_strutture').insert(rec);
@@ -199,10 +218,11 @@ function vai(id){
 // ── Lettura dei dati di una struttura (sola lettura) ──
 async function leggiStruttura(s){
   var out = { ok:false };
-  if (!s.sb_url || !s.sb_key) { out.errore = 'Panoramica non attiva: aggiungi Supabase URL e chiave (✎ Modifica).'; out.nonConfigurata = true; return out; }
+  var prog = progettoDi(s);
+  if (!prog) { out.errore = 'Panoramica non attiva: aggiungi Supabase URL e chiave (✎ Modifica).'; out.nonConfigurata = true; return out; }
   if (!s.email || !s.password) { out.errore = 'Mancano email e password di accesso (✎ Modifica).'; return out; }
   try {
-    var c = supabase.createClient(s.sb_url, s.sb_key, { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
+    var c = supabase.createClient(prog.url, prog.key, { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
     var a = await c.auth.signInWithPassword({ email:s.email, password:s.password });
     if (a.error) { out.errore = 'Accesso non riuscito (' + a.error.message + '). Se il progetto è in pausa, riattivalo da Supabase.'; return out; }
     var oggi = ymd(new Date());
